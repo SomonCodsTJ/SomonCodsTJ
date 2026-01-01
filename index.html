@@ -1,161 +1,163 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Somon Cods TJ</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --neon: #00ffcc; --bg: #0a0a0a; }
-        body { background: var(--bg); color: var(--neon); font-family: monospace; margin: 0; text-align: center; user-select: none; overflow: hidden; }
-        
-        .header { background: #000; padding: 15px; border-bottom: 2px solid var(--neon); box-shadow: 0 0 10px var(--neon); }
-        .page { display: none; padding: 20px; height: 75vh; overflow-y: auto; position: relative; }
+        :root { --neon: #00ffcc; }
+        body { background: #000; color: var(--neon); font-family: 'Courier New', monospace; margin: 0; text-align: center; overflow: hidden; }
+        #matrix { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.2; }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; border-bottom: 2px solid var(--neon); background: rgba(0,0,0,0.9); z-index: 10; position: relative; }
+        .user-profile { display: flex; align-items: center; gap: 8px; }
+        #user-avatar { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--neon); }
+        .page { display: none; padding: 20px; height: 72vh; overflow-y: auto; z-index: 5; position: relative; }
         .active { display: block; }
-
-        /* Кнопка тапа */
-        #coin-container { position: relative; margin: 50px auto; width: 220px; height: 220px; }
-        #coin { width: 100%; height: 100%; background: radial-gradient(var(--neon), #000); border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 60px; cursor: pointer; transition: transform 0.05s; z-index: 2; position: relative; }
-        #coin:active { transform: scale(0.95); }
-
-        /* Анимация цифр */
-        .tap-animation { position: absolute; color: #fff; font-size: 24px; font-weight: bold; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 10; }
-        @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-100px); opacity: 0; }
-        }
-
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; border-top: 1px solid var(--neon); }
-        .nav-item { flex: 1; padding: 15px; color: #444; font-size: 12px; }
-        .active-nav { color: var(--neon); font-weight: bold; }
-        
-        .card { background: #111; border: 1px solid #333; padding: 15px; margin: 10px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
-        button { background: var(--neon); color: #000; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; }
+        #coin-container { position: relative; margin: 30px auto; width: 180px; height: 180px; }
+        #coin { width: 100%; height: 100%; background: radial-gradient(var(--neon), #000); border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 50px; cursor: pointer; box-shadow: 0 0 20px var(--neon); }
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; border-top: 1px solid var(--neon); z-index: 10; padding-bottom: 15px;}
+        .nav-item { flex: 1; padding: 12px; color: #444; font-size: 10px; }
+        .active-nav { color: var(--neon); text-shadow: 0 0 5px var(--neon); }
+        .card { background: rgba(17, 17, 17, 0.9); border: 1px solid #333; padding: 12px; margin: 8px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        .card b { color: #fff; }
+        button { background: var(--neon); border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; color: #000; }
+        button:disabled { background: #222; color: #555; }
     </style>
 </head>
 <body onload="init()">
-
+<canvas id="matrix"></canvas>
 <div class="header">
-    <div style="font-size: 22px;">💰 <span id="bal">0</span></div>
-    <div style="font-size: 12px; opacity: 0.7;">⚡ <span id="pps">0</span>/ч | Тап: +<span id="pwr">1</span></div>
+    <div class="user-profile">
+        <img id="user-avatar" src="" alt="">
+        <span id="user-name" style="font-size: 12px; color:#fff;">User</span>
+    </div>
+    <div style="text-align: right;">
+        <div id="bal" style="font-size: 18px; font-weight: bold;">0</div>
+        <div style="font-size: 9px; opacity: 0.6;">$SOM COINS</div>
+    </div>
 </div>
 
 <div id="p1" class="page active">
-    <div id="coin-container">
-        <div id="coin">💻</div>
+    <div id="coin-container"><div id="coin" onclick="tap(event)">💻</div></div>
+    <div style="background: rgba(0,255,204,0.1); padding: 10px; border-radius: 10px;">
+        <div style="font-size: 12px;">СИЛА ТАПА: <b id="pwr">1</b> | ПРИБЫЛЬ: <b id="pps">0</b>/час</div>
     </div>
-    <p>Уровень: <span id="lvl">1</span></p>
+    <p style="font-size: 12px; color: #666; margin-top: 20px;">ПРОГРЕСС СОХРАНЯЕТСЯ В ОБЛАКО...</p>
 </div>
 
 <div id="p2" class="page">
-    <h3>УЛУЧШЕНИЯ</h3>
+    <h3 style="margin-top:0">UPGRADES</h3>
     <div class="card">
-        <div><b>Multitap</b><br><small>Увеличить силу тапа на +1</small></div>
-        <button id="buy-pwr" onclick="upgradeClick()">10k</button>
+        <div><b>Multitap</b><br><small>+1 за каждый клик</small></div>
+        <button onclick="upgradePwr()">LVL <span id="pwr-lv">1</span></button>
     </div>
-    <hr style="border-color: #222;">
     <div class="card">
-        <div><b>GPU Miner</b><br><small>+500/час в фоне</small></div>
-        <button onclick="buyMine(50000, 500)">50k</button>
+        <div><b>Video Card RTX</b><br><small>+500 $SOM/час</small></div>
+        <button onclick="buyMine(50000, 500, 'm1')">50k</button>
+    </div>
+    <div class="card">
+        <div><b>Mining Rig</b><br><small>+2,500 $SOM/час</small></div>
+        <button onclick="buyMine(200000, 2500, 'm2')">200k</button>
+    </div>
+    <div class="card">
+        <div><b>Dushanbe Server</b><br><small>+10,000 $SOM/час</small></div>
+        <button onclick="buyMine(1000000, 10000, 'm3')">1M</button>
+    </div>
+    <div class="card">
+        <div><b>Cyber Center</b><br><small>+60,000 $SOM/час</small></div>
+        <button onclick="buyMine(5000000, 60000, 'm4')">5M</button>
     </div>
 </div>
-
 <div id="p3" class="page">
-    <h3>ЗАДАНИЯ</h3>
-    <button onclick="watchAd()" style="width:100%">📺 РЕКЛАМА (<span id="ads">0</span>/10)</button>
+    <h3>WALLET & FRIENDS</h3>
+    <div style="background: #111; padding: 15px; border-radius: 10px; border: 1px solid var(--neon);">
+        <p style="font-size: 14px;">ТВОЯ ССЫЛКА (50k за друга):</p>
+        <input id="reflink" readonly style="width:100%; background:#000; color:var(--neon); border:1px solid #333; padding:5px; font-size:10px;">
+        <button onclick="copyRef()" style="margin-top:10px; width:100%">КОПИРОВАТЬ ССЫЛКУ</button>
+    </div>
+    <div style="margin-top: 20px; padding: 15px; border: 1px dashed #ff4444; border-radius: 10px;">
+        <b>ВЫВОД НА DUSHANBE CITY</b><br>
+        <small>Минимум: 5,000,000 $SOM (5 TJS)</small>
+        <button onclick="withdraw()" style="width:100%; margin-top:10px; background:#ff4444; color:#fff;">ОТПРАВИТЬ ЗАЯВКУ</button>
+    </div>
 </div>
 
 <div class="nav">
-    <div class="nav-item active-nav" onclick="tab('p1', this)">TAP</div>
-    <div class="nav-item" onclick="tab('p2', this)">UPGRADES</div>
-    <div class="nav-item" onclick="tab('p3', this)">EARN</div>
+    <div class="nav-item active-nav" onclick="tab('p1', this)">SYSTEM</div>
+    <div class="nav-item" onclick="tab('p2', this)">HACK</div>
+    <div class="nav-item" onclick="tab('p3', this)">ROOT</div>
 </div>
 
 <script>
     let tg = window.Telegram.WebApp;
-    let bal = 0, pps = 0, ads = 0, clickPower = 1;
-    let clicksToSync = 0, ppsToSync = 0;
+    let bal=0, pps=0, pwr=1, clicks=0, p_inc=0;
 
     function init() {
         tg.expand();
-        const params = new URLSearchParams(window.location.search);
-        bal = parseFloat(params.get('bal')) || 0;
-        pps = parseFloat(params.get('pps')) || 0;
-        ads = parseInt(params.get('ads')) || 0;
-        clickPower = parseInt(params.get('pwr')) || 1; // Получаем силу тапа из базы
-
-        updateUI();
-        setInterval(() => { bal += (pps/3600); updateUI(); }, 1000);
-        setInterval(() => { autoSave(); }, 10000);
-    }
-    // ТАП С АНИМАЦИЕЙ
-    function tap(event) {
-        bal += clickPower;
-        clicksToSync += clickPower;
-        
-        // Создаем вылетающую цифру
-        createFloatingText(event);
-        updateUI();
-    }
-
-    function createFloatingText(event) {
-        const container = document.getElementById('coin-container');
-        const text = document.createElement('div');
-        text.className = 'tap-animation';
-        text.innerText = '+' + clickPower;
-        
-        // Позиция цифры (центр монеты или место клика)
-        text.style.left = '50%';
-        text.style.top = '20%';
-        
-        container.appendChild(text);
-        setTimeout(() => text.remove(), 600);
-    }
-
-    document.getElementById('coin').onclick = (e) => tap(e);
-
-    // Улучшение силы клика
-    function upgradeClick() {
-        let cost = clickPower * 10000; // Цена растет с каждым уровнем
-        if (bal >= cost) {
-            bal -= cost;
-            clickPower += 1;
-            updateUI();
-            tg.HapticFeedback.impactOccurred('medium');
-        } else {
-            tg.showAlert("Нужно " + cost + " $SOM!");
+        const user = tg.initDataUnsafe.user;
+        if(user) {
+            document.getElementById('user-name').innerText = user.first_name;
+            document.getElementById('user-avatar').src = user.photo_url || "https://ui-avatars.com/api/?name="+user.first_name+"&background=00ffcc";
+            document.getElementById('reflink').value = "https://t.me/ТВОЙ_БОТ_USERNAME?start=" + user.id;
         }
+        const p = new URLSearchParams(window.location.search);
+        bal = parseFloat(p.get('bal')) || 0;
+        pps = parseFloat(p.get('pps')) || 0;
+        pwr = parseInt(p.get('pwr')) || 1;
+        updateUI();
+        setInterval(() => { bal += pps/3600; updateUI(); }, 1000);
+        setInterval(autoSave, 10000);
     }
 
-    function buyMine(cost, p) {
-        if(bal >= cost) { bal -= cost; pps += p; ppsToSync += p; updateUI(); }
+    function tap(e) { bal += pwr; clicks += pwr; updateUI(); }
+    function upgradePwr() { 
+        let cost = pwr * 15000; 
+        if(bal >= cost) { bal -= cost; pwr++; updateUI(); tg.HapticFeedback.impactOccurred('light'); } 
     }
-
-    function watchAd() { if(ads < 10) { ads++; bal += 5000; updateUI(); } }
-
+    function buyMine(c, p, id) { 
+        if(bal >= c) { bal -= c; pps += p; p_inc += p; updateUI(); tg.HapticFeedback.notificationOccurred('success'); } 
+    }
     function updateUI() {
         document.getElementById('bal').innerText = Math.floor(bal).toLocaleString();
-        document.getElementById('pps').innerText = Math.floor(pps);
-        document.getElementById('ads').innerText = ads;
-        document.getElementById('pwr').innerText = clickPower;
-        document.getElementById('buy-pwr').innerText = (clickPower * 10000).toLocaleString();
-        document.getElementById('lvl').innerText = bal >= 5000000 ? 3 : (bal >= 1000000 ? 2 : 1);
+        document.getElementById('pps').innerText = Math.floor(pps).toLocaleString();
+        document.getElementById('pwr').innerText = pwr;
+        document.getElementById('pwr-lv').innerText = pwr;
     }
-
     function autoSave() {
-        if (clicksToSync > 0 || ppsToSync > 0) {
-            // Формат: клики : реклама : новый_доход : сила_тапа
-            tg.sendData(clicksToSync + ":" + ads + ":" + ppsToSync + ":" + clickPower);
-            clicksToSync = 0; ppsToSync = 0;
+        if(clicks > 0 || p_inc > 0) {
+            tg.sendData(clicks + ":0:" + p_inc + ":" + pwr);
+            clicks = 0; p_inc = 0;
         }
     }
-
+    function copyRef() {
+        let r = document.getElementById('reflink'); r.select(); document.execCommand('copy');
+        tg.showAlert("Ссылка скопирована! Отправь её другу.");
+    }
+    function withdraw() {
+        if(bal < 5000000) { tg.showAlert("Нужно минимум 5 млн $SOM!"); }
+        else { tg.showConfirm("Отправить заявку на вывод?", (ok) => { if(ok) { tg.sendData("withdraw_request"); tg.close(); } }); }
+    }
     function tab(id, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         document.getElementById(id).classList.add('active');
         el.classList.add('active-nav');
     }
+    // Matrix Rain (кратко)
+    const c=document.getElementById('matrix'), x=c.getContext('2d');
+    c.width=window.innerWidth; c.height=window.innerHeight;
+    const m="01", f=16, col=c.width/f, dr=[];
+    for(let i=0;i<col;i++) dr[i]=1;
+    function draw() {
+        x.fillStyle="rgba(0,0,0,0.05)"; x.fillRect(0,0,c.width,c.height);
+        x.fillStyle="#0f0"; x.font=f+"px monospace";
+        for(let i=0;i<dr.length;i++) {
+            x.fillText(m[Math.floor(Math.random()*m.length)],i*f,dr[i]*f);
+            if(dr[i]*f>c.height&&Math.random()>0.975) dr[i]=0; dr[i]++;
+        }
+    }
+    setInterval(draw, 50);
 </script>
 </body>
 </html>
