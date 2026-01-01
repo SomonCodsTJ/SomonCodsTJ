@@ -56,6 +56,18 @@
             margin-bottom: 20px;
         }
 
+        /* Профиль пользователя */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #0f0;
+        }
+        .user-avatar {
+            width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; border: 1px solid #0f0;
+            background: #002200;
+        }
+
         .stat-box {
             border: 1px solid #0f0;
             padding: 5px 10px;
@@ -186,6 +198,10 @@
         <div class="content">
             <!-- Верхняя панель -->
             <div class="header">
+                <div class="user-profile">
+                    <img id="avatar" class="user-avatar" src="" alt="">
+                    <span id="username">Hacker</span>
+                </div>
                 <div class="stat-box">LVL: <span id="lvl-display">1</span></div>
                 <div class="stat-box">💰 <span id="balance-display">0</span></div>
             </div>
@@ -193,35 +209,48 @@
             <!-- ВКЛАДКА: ГЛАВНАЯ -->
             <div id="tab-main" class="tab-content active">
                 <div class="hacker-circle" id="tap-btn">
-                    <div class="terminal-text">TAP_CORE</div>
+                    <div class="terminal-text">ТАПАТЬ</div>
                 </div>
+                <div style="margin-bottom: 10px; font-size: 14px;">⛏ Авто-майнинг: <span id="mining-rate">0</span>/сек</div>
                 <div class="energy-bar">
-                    ⚡ Energy: <span id="energy-display">1000</span>/1000
+                    ⚡ Энергия: <span id="energy-display">1000</span>/1000
                 </div>
             </div>
 
             <!-- ВКЛАДКА: УЛУЧШЕНИЯ -->
             <div id="tab-upgrade" class="tab-content">
-                <h2>SYSTEM UPGRADE</h2>
+                <h2>УЛУЧШЕНИЕ СИСТЕМЫ</h2>
                 <div class="card">
                     <p>Повысить уровень доступа</p>
                     <p>Доход: +<span id="next-lvl-income">2</span> за клик</p>
-                    <button class="hacker-btn" id="btn-upgrade">UPGRADE (<span id="upgrade-cost">100</span> 💰)</button>
+                    <button class="hacker-btn" id="btn-upgrade">КУПИТЬ (<span id="upgrade-cost">100</span> 💰)</button>
+                </div>
+
+                <h3>АВТО-МАЙНИНГ (CPU)</h3>
+                <div class="card">
+                    <p>CPU v1.0 (+1/сек)</p>
+                    <button class="hacker-btn" onclick="buyMiner('cpu1')">КУПИТЬ (500 💰)</button>
+                </div>
+                <div class="card">
+                    <p>CPU v2.0 (+5/сек)</p>
+                    <button class="hacker-btn" onclick="buyMiner('cpu2')">КУПИТЬ (2000 💰)</button>
                 </div>
             </div>
 
             <!-- ВКЛАДКА: ДРУЗЬЯ -->
             <div id="tab-friends" class="tab-content">
-                <h2>NODES</h2>
+                <h2>ДРУЗЬЯ</h2>
                 <div class="card">
+                    <p>Твоя реферальная ссылка:</p>
+                    <input type="text" id="ref-link" value="..." readonly style="width: 90%; background: #000; color: #0f0; border: 1px solid #0f0; margin-bottom: 10px;">
                     <p>Приглашено: <span id="friends-display">0</span> / 5</p>
-                    <button class="hacker-btn" onclick="addFriend()">[TEST] Пригласить друга</button>
+                    <button class="hacker-btn" onclick="inviteFriend()">Пригласить друга</button>
                 </div>
             </div>
 
             <!-- ВКЛАДКА: ВЫВОД -->
             <div id="tab-withdraw" class="tab-content">
-                <h2>CASH OUT</h2>
+                <h2>ВЫВОД СРЕДСТВ</h2>
                 <div class="card" style="text-align: left;">
                     <div id="req-lvl" class="req">[X] Уровень 4+</div>
                     <div id="req-ads" class="req">[X] Реклама 10+ (<span id="ads-display">0</span>)</div>
@@ -229,15 +258,15 @@
                 </div>
                 <button class="hacker-btn" onclick="watchAd()">Смотреть рекламу (+1)</button>
                 <br>
-                <button class="hacker-btn" id="btn-withdraw" disabled>ВЫВЕСТИ СРЕДСТВА</button>
+                <button class="hacker-btn" id="btn-withdraw" onclick="withdraw()" disabled>ВЫВЕСТИ СРЕДСТВА</button>
             </div>
 
             <!-- Нижнее меню -->
             <div class="bottom-nav">
-                <button class="nav-btn active" onclick="switchTab('main', this)">TERMINAL</button>
-                <button class="nav-btn" onclick="switchTab('upgrade', this)">UPGRADE</button>
-                <button class="nav-btn" onclick="switchTab('friends', this)">NODES</button>
-                <button class="nav-btn" onclick="switchTab('withdraw', this)">CASH</button>
+                <button class="nav-btn active" onclick="switchTab('main', this)">ГЛАВНАЯ</button>
+                <button class="nav-btn" onclick="switchTab('upgrade', this)">УЛУЧШИТЬ</button>
+                <button class="nav-btn" onclick="switchTab('friends', this)">ДРУЗЬЯ</button>
+                <button class="nav-btn" onclick="switchTab('withdraw', this)">ВЫВОД</button>
             </div>
         </div>
     </div>
@@ -248,6 +277,7 @@
         // Данные пользователя
         let balance = 0;
         let level = 1;
+        let miningRate = 0;
         let energy = 1000;
         let adsWatched = 0;
         let friendsCount = 0;
@@ -255,12 +285,22 @@
         // Инициализация Telegram
         const tg = window.Telegram.WebApp;
         tg.expand(); // На весь экран
+        const userId = tg.initDataUnsafe?.user?.id || 1; // ID пользователя
+        const userObj = tg.initDataUnsafe?.user;
+
+        // Установка профиля
+        if (userObj) {
+            document.getElementById('username').innerText = userObj.username || userObj.first_name;
+            if (userObj.photo_url) document.getElementById('avatar').src = userObj.photo_url;
+            document.getElementById('ref-link').value = `https://t.me/SomonCoinsBot?start=ref${userId}`;
+        }
 
         // Обновление интерфейса
         function updateUI() {
             document.getElementById('balance-display').innerText = balance;
             document.getElementById('lvl-display').innerText = level;
             document.getElementById('energy-display').innerText = energy;
+            document.getElementById('mining-rate').innerText = miningRate;
             document.getElementById('next-lvl-income').innerText = level + 1;
             
             const cost = level * 100;
@@ -292,6 +332,31 @@
             }
         }
 
+        // Загрузка данных с сервера
+        async function loadData() {
+            try {
+                const res = await fetch(`/api/user/${userId}`);
+                const data = await res.json();
+                if (data.balance !== undefined) {
+                    balance = data.balance;
+                    level = data.level;
+                    miningRate = data.mining_rate || 0;
+                    energy = data.energy;
+                    adsWatched = data.ads_watched;
+                    friendsCount = data.friends_count;
+                    updateUI();
+                }
+            } catch (e) { console.error("Ошибка загрузки:", e); }
+        }
+
+        // Авто-майнинг (визуальный цикл)
+        setInterval(() => {
+            if (miningRate > 0) {
+                balance += miningRate;
+                updateUI();
+            }
+        }, 1000);
+
         // Логика Тапа
         document.getElementById('tap-btn').addEventListener('click', (e) => {
             if (energy > 0) {
@@ -308,6 +373,12 @@
                 setTimeout(() => floatText.remove(), 1000);
 
                 updateUI();
+                
+                // Отправка клика на сервер
+                fetch('/api/tap', {
+                    method: 'POST',
+                    body: JSON.stringify({ user_id: userId, amount: level, energy: energy, username: userObj?.username })
+                });
             }
         });
 
@@ -315,15 +386,66 @@
         document.getElementById('btn-upgrade').addEventListener('click', () => {
             const cost = level * 100;
             if (balance >= cost) {
-                balance -= cost;
-                level++;
-                updateUI();
+                fetch('/api/upgrade', {
+                    method: 'POST',
+                    body: JSON.stringify({ user_id: userId })
+                }).then(res => res.json()).then(data => {
+                    if (data.status === 'ok') {
+                        balance = data.balance;
+                        level = data.level;
+                        updateUI();
+                    }
+                });
             }
         });
 
-        // Тестовые функции
-        function addFriend() { friendsCount++; updateUI(); }
-        function watchAd() { adsWatched++; updateUI(); }
+        // Покупка майнера
+        function buyMiner(type) {
+            fetch('/api/buy_miner', {
+                method: 'POST',
+                body: JSON.stringify({ user_id: userId, type: type })
+            }).then(res => res.json()).then(data => {
+                if (data.status === 'ok') {
+                    balance = data.balance;
+                    miningRate = data.mining_rate;
+                    updateUI();
+                    alert("✅ CPU успешно куплен!");
+                } else {
+                    alert("❌ Ошибка: " + data.error);
+                }
+            });
+        }
+
+        // Функции действий
+        function inviteFriend() {
+            // Имитация приглашения (в реальности нужно отправлять ссылку друзьям)
+            const link = document.getElementById('ref-link').value;
+            tg.openTelegramLink(`https://t.me/share/url?url=${link}&text=Играй в Somon Coins и зарабатывай!`);
+            
+            // Для теста накручиваем счетчик (в реале это должно быть по факту входа друга)
+            setTimeout(() => {
+                fetch('/api/action', { method: 'POST', body: JSON.stringify({ user_id: userId, type: 'friend' }) })
+                .then(res => res.json())
+                .then(data => { friendsCount = data.data.friends_count; updateUI(); });
+            }, 5000);
+        }
+        
+        function watchAd() { 
+            fetch('/api/action', { method: 'POST', body: JSON.stringify({ user_id: userId, type: 'ad' }) })
+                .then(res => res.json())
+                .then(data => { adsWatched = data.data.ads_watched; updateUI(); });
+        }
+
+        // Вывод средств
+        function withdraw() {
+            if (!confirm("Отправить заявку на вывод?")) return;
+            
+            fetch('/api/withdraw', { method: 'POST', body: JSON.stringify({ user_id: userId }) })
+                .then(res => res.json())
+                .then(data => {
+                    alert("✅ Заявка отправлена администратору!");
+                });
+        }
 
         // Переключение вкладок
         window.switchTab = function(tabName, btn) {
@@ -370,6 +492,7 @@
         setInterval(drawMatrix, 33);
 
         // Запуск
+        loadData();
         updateUI();
     </script>
 </body>
