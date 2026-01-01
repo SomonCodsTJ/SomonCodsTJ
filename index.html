@@ -124,12 +124,50 @@
         document.getElementById('pwr').innerText = pwr;
         document.getElementById('pwr-lv').innerText = pwr;
     }
-    function autoSave() {
-        if(clicks > 0 || p_inc > 0) {
-            tg.sendData(clicks + ":0:" + p_inc + ":" + pwr);
-            clicks = 0; p_inc = 0;
+    // Функция сохранения в облако Telegram (БЕЗ ВЫЛЕТА)
+function autoSave() {
+    // Собираем данные в одну строку
+    const progress = JSON.stringify({
+        bal: bal,
+        pps: pps,
+        pwr: pwr,
+        ads: ads
+    });
+
+    // Сохраняем в облако Telegram
+    tg.CloudStorage.setItem('user_progress', progress, function(err, success) {
+        if(success) {
+            console.log("Прогресс сохранен в облако!");
         }
-    }
+    });
+}
+
+// Запускаем сохранение каждые 3 секунды
+setInterval(autoSave, 3000);
+
+// При запуске игры (в функции init) нужно загрузить данные из облака
+function init() {
+    tg.expand();
+    
+    // Сначала пробуем загрузить из облака Telegram
+    tg.CloudStorage.getItem('user_progress', function(err, value) {
+        if(value) {
+            const data = JSON.parse(value);
+            bal = data.bal;
+            pps = data.pps;
+            pwr = data.pwr;
+            ads = data.ads;
+            updateUI();
+        } else {
+            // Если в облаке пусто, берем из ссылки бота (первый запуск)
+            const p = new URLSearchParams(window.location.search);
+            bal = parseFloat(p.get('bal')) || 0;
+            pps = parseFloat(p.get('pps')) || 0;
+            pwr = parseInt(p.get('pwr')) || 1;
+        }
+    });
+}
+    
     function copyRef() {
         let r = document.getElementById('reflink'); r.select(); document.execCommand('copy');
         tg.showAlert("Ссылка скопирована! Отправь её другу.");
