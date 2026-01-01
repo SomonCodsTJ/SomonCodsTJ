@@ -283,6 +283,7 @@
             text-align: center;
         }
         #onboarding-modal h1 { color: #0f0; text-shadow: 0 0 10px #0f0; margin-bottom: 20px; }
+        #onboarding-modal h2 { color: #fff; font-size: 16px; margin-bottom: 10px; }
         #onboarding-modal p { color: #ccc; font-size: 14px; line-height: 1.5; margin-bottom: 30px; }
         #onboarding-modal .terms-box { border: 1px solid #0f0; padding: 15px; border-radius: 10px; background: rgba(0, 20, 0, 0.5); margin-bottom: 20px; max-height: 200px; overflow-y: auto; }
 
@@ -298,6 +299,7 @@
         <!-- ЭКРАН АВТОРИЗАЦИИ / О ПРОЕКТЕ -->
         <div id="onboarding-modal">
             <h1>SOMON COINS TJ</h1>
+            <h2>ДОБРО ПОЖАЛОВАТЬ!</h2>
             <div class="terms-box">
                 <p>Добро пожаловать в проект!</p>
                 <p>Здесь вы можете зарабатывать монеты, улучшать оборудование и выводить средства.</p>
@@ -486,6 +488,8 @@
                     // Если не принял условия - показываем окно
                     if (agreedToTerms === 0) {
                         document.getElementById('onboarding-modal').style.display = 'flex';
+                    } else {
+                        document.getElementById('onboarding-modal').style.display = 'none';
                     }
                     updateUI();
                 }
@@ -550,18 +554,24 @@
         // Логика Апгрейда
         document.getElementById('btn-upgrade').addEventListener('click', () => {
             const cost = level * 100;
-            if (balance >= cost) {
-                fetch('/api/upgrade', {
-                    method: 'POST',
-                    body: JSON.stringify({ user_id: userId })
-                }).then(res => res.json()).then(data => {
-                    if (data.status === 'ok') {
-                        balance = data.balance;
-                        level = data.level;
-                        updateUI();
-                    }
-                });
+            if (balance < cost) {
+                alert("❌ Недостаточно монет!");
+                return;
             }
+            
+            fetch('/api/upgrade', {
+                method: 'POST',
+                body: JSON.stringify({ user_id: userId })
+            }).then(res => res.json()).then(data => {
+                if (data.status === 'ok') {
+                    balance = data.balance;
+                    level = data.level;
+                    updateUI();
+                    alert("✅ Уровень повышен!");
+                } else {
+                    alert("❌ Ошибка: " + data.error);
+                }
+            });
         });
 
         // Покупка майнера
@@ -576,7 +586,12 @@
                     updateUI();
                     alert("✅ CPU успешно куплен!");
                 } else {
-                    alert("❌ Ошибка: " + data.error);
+                    // Если ошибка "Недостаточно средств", пишем понятнее
+                    if (data.error === "Недостаточно средств") {
+                        alert("❌ Не хватает монет для покупки!");
+                    } else {
+                        alert("❌ Ошибка: " + data.error);
+                    }
                 }
             });
         }
