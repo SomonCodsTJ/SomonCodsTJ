@@ -257,12 +257,57 @@
             transition: width 0.5s;
             box-shadow: 0 0 10px #0f0;
         }
+        
+        /* Баланс по центру над тапалкой */
+        .balance-display-large {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px #0f0;
+            color: #fff;
+        }
+
+        /* Модальное окно (Авторизация) */
+        #onboarding-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: none; /* Скрыто по умолчанию */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        #onboarding-modal h1 { color: #0f0; text-shadow: 0 0 10px #0f0; margin-bottom: 20px; }
+        #onboarding-modal p { color: #ccc; font-size: 14px; line-height: 1.5; margin-bottom: 30px; }
+        #onboarding-modal .terms-box { border: 1px solid #0f0; padding: 15px; border-radius: 10px; background: rgba(0, 20, 0, 0.5); margin-bottom: 20px; max-height: 200px; overflow-y: auto; }
+
+        /* Скрываем баланс в хедере, так как он теперь в центре */
+        .header .stat-box.balance-hide { display: none; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
         <canvas id="matrix-canvas"></canvas>
+        
+        <!-- ЭКРАН АВТОРИЗАЦИИ / О ПРОЕКТЕ -->
+        <div id="onboarding-modal">
+            <h1>SOMON COINS TJ</h1>
+            <div class="terms-box">
+                <p>Добро пожаловать в проект!</p>
+                <p>Здесь вы можете зарабатывать монеты, улучшать оборудование и выводить средства.</p>
+                <p><b>Условия использования:</b></p>
+                <p>1. Не использовать автокликеры.</p>
+                <p>2. Не создавать фейковые аккаунты.</p>
+                <p>3. Администрация оставляет за собой право обнулить баланс при нарушении правил.</p>
+            </div>
+            <button class="hacker-btn" onclick="agreeTerms()">Я СОГЛАСЕН И ПРИНИМАЮ УСЛОВИЯ</button>
+        </div>
 
         <div class="content">
             <!-- Верхняя панель -->
@@ -271,12 +316,15 @@
                     <img id="avatar" class="user-avatar" src="" alt="">
                     <span id="username">Hacker</span>
                 </div>
+                <!-- Уровень справа сверху -->
                 <div class="stat-box">LVL: <span id="lvl-display">1</span></div>
-                <div class="stat-box" style="color: #fff; text-shadow: 0 0 10px #fff;">💰 <span id="balance-display">0</span></div>
             </div>
 
             <!-- ВКЛАДКА: ГЛАВНАЯ -->
             <div id="tab-main" class="tab-content active">
+                <!-- Баланс по центру -->
+                <div class="balance-display-large">💰 <span id="balance-display">0</span></div>
+                
                 <div class="hacker-circle" id="tap-btn">
                     <div class="terminal-text">ТАПАТЬ</div>
                 </div>
@@ -364,6 +412,7 @@
         let energy = 1000;
         let adsWatched = 0;
         let friendsCount = 0;
+        let agreedToTerms = 0;
 
         // Инициализация Telegram
         const tg = window.Telegram.WebApp;
@@ -432,12 +481,29 @@
                     energy = data.energy;
                     adsWatched = data.ads_watched;
                     friendsCount = data.friends_count;
+                    agreedToTerms = data.agreed_to_terms || 0;
+                    
+                    // Если не принял условия - показываем окно
+                    if (agreedToTerms === 0) {
+                        document.getElementById('onboarding-modal').style.display = 'flex';
+                    }
                     updateUI();
                 }
             } catch (e) { 
                 console.error("Ошибка загрузки:", e);
                 // alert("Ошибка связи с сервером. Проверьте интернет."); 
             }
+        }
+
+        // Принятие условий
+        function agreeTerms() {
+            fetch('/api/agree_terms', {
+                method: 'POST',
+                body: JSON.stringify({ user_id: userId })
+            }).then(() => {
+                document.getElementById('onboarding-modal').style.display = 'none';
+                agreedToTerms = 1;
+            });
         }
 
         // Восстановление энергии (клиентская часть)
