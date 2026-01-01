@@ -6,215 +6,156 @@
     <title>Somon Cods TJ</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --neon: #00ffcc; --bg: #0a0a0a; --card: #151515; }
-        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; margin: 0; padding: 0; user-select: none; touch-action: manipulation; }
+        :root { --neon: #00ffcc; --bg: #0a0a0a; }
+        body { background: var(--bg); color: var(--neon); font-family: monospace; margin: 0; text-align: center; user-select: none; overflow: hidden; }
         
-        .header { background: #000; padding: 15px; border-bottom: 2px solid var(--neon); position: sticky; top: 0; z-index: 100; box-shadow: 0 0 15px var(--neon); }
-        .stats-row { display: flex; justify-content: space-around; font-size: 14px; margin-top: 5px; color: #fff; }
-
-        .page { display: none; padding: 20px; height: 75vh; overflow-y: auto; text-align: center; }
+        .header { background: #000; padding: 15px; border-bottom: 2px solid var(--neon); box-shadow: 0 0 10px var(--neon); }
+        .page { display: none; padding: 20px; height: 75vh; overflow-y: auto; position: relative; }
         .active { display: block; }
 
-        /* Главная кнопка */
-        #coin-space { margin-top: 30px; }
-        #coin { width: 220px; height: 220px; background: radial-gradient(circle, var(--neon) 0%, #000 80%); border-radius: 50%; margin: 0 auto; border: 4px solid #fff; box-shadow: 0 0 30px var(--neon); display: flex; align-items: center; justify-content: center; font-size: 60px; cursor: pointer; transition: transform 0.05s; }
-        #coin:active { transform: scale(0.92); }
+        /* Кнопка тапа */
+        #coin-container { position: relative; margin: 50px auto; width: 220px; height: 220px; }
+        #coin { width: 100%; height: 100%; background: radial-gradient(var(--neon), #000); border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 60px; cursor: pointer; transition: transform 0.05s; z-index: 2; position: relative; }
+        #coin:active { transform: scale(0.95); }
 
-        /* Карточки */
-        .card { background: var(--card); border: 1px solid #333; padding: 15px; margin: 12px 0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
-        .card-info b { color: #fff; font-size: 16px; }
-        .card-info small { color: var(--neon); opacity: 0.8; }
+        /* Анимация цифр */
+        .tap-animation { position: absolute; color: #fff; font-size: 24px; font-weight: bold; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 10; }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; border-top: 1px solid var(--neon); }
+        .nav-item { flex: 1; padding: 15px; color: #444; font-size: 12px; }
+        .active-nav { color: var(--neon); font-weight: bold; }
         
-        button.buy-btn { background: var(--neon); color: #000; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; font-family: inherit; }
-        button:disabled { background: #333; color: #666; }
-
-        /* Навигация */
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; border-top: 1px solid var(--neon); padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { flex: 1; padding: 15px; text-align: center; font-size: 12px; color: #555; cursor: pointer; transition: 0.3s; }
-        .nav-item.active-nav { color: var(--neon); text-shadow: 0 0 10px var(--neon); font-weight: bold; }
-
-        /* Реферальная секция */
-        .ref-box { background: #111; padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; gap: 5px; }
-        #reflink { background: none; border: none; color: #888; width: 100%; font-size: 12px; }
-
-        .sync-btn { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 10px; width: 100%; margin-top: 20px; border-radius: 8px; }
+        .card { background: #111; border: 1px solid #333; padding: 15px; margin: 10px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        button { background: var(--neon); color: #000; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
-<body onload="initApp()">
+<body onload="init()">
 
-    <div class="header">
-        <div style="font-size: 24px; font-weight: bold;">💰 <span id="balance">0</span></div>
-        <div class="stats-row">
-            <span>⚡ <span id="pps">0</span>/час</span>
-            <span>LVL: <span id="lvl-num">1</span></span>
-        </div>
+<div class="header">
+    <div style="font-size: 22px;">💰 <span id="bal">0</span></div>
+    <div style="font-size: 12px; opacity: 0.7;">⚡ <span id="pps">0</span>/ч | Тап: +<span id="pwr">1</span></div>
+</div>
+
+<div id="p1" class="page active">
+    <div id="coin-container">
+        <div id="coin">💻</div>
     </div>
+    <p>Уровень: <span id="lvl">1</span></p>
+</div>
 
-    <div id="tap-page" class="page active">
-        <div id="coin-space">
-            <div id="coin">💻</div>
-        </div>
-        <p style="margin-top: 25px; color: #888;">СИСТЕМА: <span id="lvl-name">Cyber Novice</span></p>
-        <button class="sync-btn" onclick="sendSync()">💾 СОХРАНИТЬ ПРОГРЕСС</button>
+<div id="p2" class="page">
+    <h3>УЛУЧШЕНИЯ</h3>
+    <div class="card">
+        <div><b>Multitap</b><br><small>Увеличить силу тапа на +1</small></div>
+        <button id="buy-pwr" onclick="upgradeClick()">10k</button>
     </div>
-
-    <div id="mine-page" class="page">
-        <h2 style="color: #fff;">UPGRADES</h2>
-        <div class="card">
-            <div class="card-info"><b>Video Card RTX</b><br><small>+500 $SOM/час</small></div>
-            <button class="buy-btn" onclick="buyUpgrade(50000, 500)">50k</button>
-        </div>
-        <div class="card">
-<div class="card-info"><b>Server ASIC</b><br><small>+5,000 $SOM/час</small></div>
-            <button class="buy-btn" onclick="buyUpgrade(500000, 5000)">500k</button>
-        </div>
-        <div class="card">
-            <div class="card-info"><b>Quantum CPU</b><br><small>+50,000 $SOM/час</small></div>
-            <button class="buy-btn" onclick="buyUpgrade(5000000, 50000)">5M</button>
-        </div>
+    <hr style="border-color: #222;">
+    <div class="card">
+        <div><b>GPU Miner</b><br><small>+500/час в фоне</small></div>
+        <button onclick="buyMine(50000, 500)">50k</button>
     </div>
+</div>
 
-    <div id="earn-page" class="page">
-        <h2 style="color: #fff;">MISSIONS</h2>
-        
-        <div class="card" onclick="watchAd()">
-            <div class="card-info"><b>📺 Смотреть рекламу</b><br><small>Бонус за просмотр</small></div>
-            <b id="ads-count">0/10</b>
-        </div>
+<div id="p3" class="page">
+    <h3>ЗАДАНИЯ</h3>
+    <button onclick="watchAd()" style="width:100%">📺 РЕКЛАМА (<span id="ads">0</span>/10)</button>
+</div>
 
-        <div style="margin-top: 30px; text-align: left;">
-            <label>Твоя ссылка (Invite Friends):</label>
-            <div class="ref-box">
-                <input type="text" id="reflink" readonly value="Загрузка...">
-                <button onclick="copyRef()" style="background: var(--neon); border:none; padding:5px 10px; border-radius:4px;">COPY</button>
-            </div>
-            <small style="color: #666;">+50,000 $SOM за друга</small>
-        </div>
+<div class="nav">
+    <div class="nav-item active-nav" onclick="tab('p1', this)">TAP</div>
+    <div class="nav-item" onclick="tab('p2', this)">UPGRADES</div>
+    <div class="nav-item" onclick="tab('p3', this)">EARN</div>
+</div>
 
-        <div style="margin-top: 40px; padding: 20px; border: 1px dashed var(--neon); border-radius: 15px;">
-            <p id="w-status" style="color: #ff4444;">❌ ВЫВОД ЗАБЛОКИРОВАН</p>
-            <small id="w-hint">Нужен 3 LVL + 3 Друга + 10 Реклам</small>
-            <button id="withdraw-btn" disabled class="buy-btn" style="width: 100%; margin-top: 15px; height: 50px;" onclick="requestWithdraw()">ВЫВЕСТИ 5 TJS</button>
-        </div>
-    </div>
+<script>
+    let tg = window.Telegram.WebApp;
+    let bal = 0, pps = 0, ads = 0, clickPower = 1;
+    let clicksToSync = 0, ppsToSync = 0;
 
-    <div class="nav">
-        <div class="nav-item active-nav" onclick="showPage('tap-page', this)">🖥️ TAP</div>
-        <div class="nav-item" onclick="showPage('mine-page', this)">⚡ MINE</div>
-        <div class="nav-item" onclick="showPage('earn-page', this)">💰 EARN</div>
-    </div>
-
-    <script>
-        let tg = window.Telegram.WebApp;
-        let balance = 0, pps = 0, ads = 0, clicksToSync = 0, pIncToSync = 0;
-        let userLvl = 1;
-
+    function init() {
         tg.expand();
+        const params = new URLSearchParams(window.location.search);
+        bal = parseFloat(params.get('bal')) || 0;
+        pps = parseFloat(params.get('pps')) || 0;
+        ads = parseInt(params.get('ads')) || 0;
+        clickPower = parseInt(params.get('pwr')) || 1; // Получаем силу тапа из базы
 
-        function initApp() {
-            // Генерация реф-ссылки (замени USERNAME на свой!)
-            let userId = tg.initDataUnsafe.user.id;
-            document.getElementById('reflink').value = "https://t.me/ТВОЙ_БОТ_USERNAME?start=" + userId;
+        updateUI();
+        setInterval(() => { bal += (pps/3600); updateUI(); }, 1000);
+        setInterval(() => { autoSave(); }, 10000);
+    }
+    // ТАП С АНИМАЦИЕЙ
+    function tap(event) {
+        bal += clickPower;
+        clicksToSync += clickPower;
+        
+        // Создаем вылетающую цифру
+        createFloatingText(event);
+        updateUI();
+    }
 
-            // Запуск автодохода (раз в секунду)
-            setInterval(() => {
-                if (pps > 0) {
-                    balance += (pps / 3600);
-                    updateUI();
-                }
-            }, 1000);
-        }
+    function createFloatingText(event) {
+        const container = document.getElementById('coin-container');
+        const text = document.createElement('div');
+        text.className = 'tap-animation';
+        text.innerText = '+' + clickPower;
+        
+        // Позиция цифры (центр монеты или место клика)
+        text.style.left = '50%';
+        text.style.top = '20%';
+        
+        container.appendChild(text);
+        setTimeout(() => text.remove(), 600);
+    }
 
-        function tap() {
-            let perTap = 1000; // Монет за один клик
-            balance += perTap;
-            clicksToSync += perTap;
+    document.getElementById('coin').onclick = (e) => tap(e);
+
+    // Улучшение силы клика
+    function upgradeClick() {
+        let cost = clickPower * 10000; // Цена растет с каждым уровнем
+        if (bal >= cost) {
+            bal -= cost;
+            clickPower += 1;
             updateUI();
-            
-            // Простая анимация клика
-            document.getElementById('coin').style.transform = "scale(0.95)";
-            setTimeout(() => document.getElementById('coin').style.transform = "scale(1)", 50);
+            tg.HapticFeedback.impactOccurred('medium');
+        } else {
+            tg.showAlert("Нужно " + cost + " $SOM!");
         }
-        document.getElementById('coin').onclick = tap;
+    }
 
-        function buyUpgrade(cost, income) {
-            if (balance >= cost) {
-                balance -= cost;
-                pps += income;
-                pIncToSync += income;
-                updateUI();
-                tg.HapticFeedback.impactOccurred('medium');
-            } else {
-                tg.showAlert("Недостаточно $SOM!");
-            }
+    function buyMine(cost, p) {
+        if(bal >= cost) { bal -= cost; pps += p; ppsToSync += p; updateUI(); }
+    }
+
+    function watchAd() { if(ads < 10) { ads++; bal += 5000; updateUI(); } }
+
+    function updateUI() {
+        document.getElementById('bal').innerText = Math.floor(bal).toLocaleString();
+        document.getElementById('pps').innerText = Math.floor(pps);
+        document.getElementById('ads').innerText = ads;
+        document.getElementById('pwr').innerText = clickPower;
+        document.getElementById('buy-pwr').innerText = (clickPower * 10000).toLocaleString();
+        document.getElementById('lvl').innerText = bal >= 5000000 ? 3 : (bal >= 1000000 ? 2 : 1);
+    }
+
+    function autoSave() {
+        if (clicksToSync > 0 || ppsToSync > 0) {
+            // Формат: клики : реклама : новый_доход : сила_тапа
+            tg.sendData(clicksToSync + ":" + ads + ":" + ppsToSync + ":" + clickPower);
+            clicksToSync = 0; ppsToSync = 0;
         }
+    }
 
-        function watchAd() {
-            if (ads < 10) {
-                ads++;
-                balance += 10000;
-                updateUI();
-                tg.showScanQrPopup({ text: "Имитация просмотра рекламы..." });
-                setTimeout(() => tg.closeScanQrPopup(), 2000);
-            }
-        }
-
-        function updateUI() {
-            document.getElementById('balance').innerText = Math.floor(balance).toLocaleString();
-            document.getElementById('pps').innerText = pps;
-            document.getElementById('ads-count').innerText = ads + "/10";
-
-            // Уровни
-            if (balance >= 5000000) { 
-                userLvl = 3; 
-                document.getElementById('lvl-name').innerText = "Cyber Runner"; 
-            }
-            else if (balance >= 1000000) { 
-                userLvl = 2; 
-                document.getElementById('lvl-name').innerText = "System Hacker"; 
-            }
-            else { 
-                userLvl = 1; 
-                document.getElementById('lvl-name').innerText = "Cyber Novice"; 
-            }
-            document.getElementById('lvl-num').innerText = userLvl;
-
-            // Проверка вывода
-            let btn = document.getElementById('withdraw-btn');
-            if (userLvl >= 3 && ads >= 10) {
-                btn.disabled = false;
-                document.getElementById('w-status').innerText = "✅ ВЫВОД ДОСТУПЕН";
-                document.getElementById('w-status').style.color = "#00ffcc"; // Исправлено: просто код цвета
-            }
-        }
-           
-
-        function showPage(pageId, el) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-            document.getElementById(pageId).classList.add('active');
-            el.classList.add('active-nav');
-        }
-
-        function copyRef() {
-            let copyText = document.getElementById("reflink");
-            copyText.select();
-            document.execCommand("copy");
-            tg.showScanQrPopup({ text: "Ссылка скопирована!" });
-            setTimeout(() => tg.closeScanQrPopup(), 1000);
-        }
-
-        function sendSync() {
-            // Формат: клики:реклама:доход_в_час
-            let data = clicksToSync + ":" + ads + ":" + pIncToSync;
-            tg.sendData(data);
-            clicksToSync = 0;
-            pIncToSync = 0;
-        }
-
-        function requestWithdraw() {
-            tg.close(); // Закрываем приложение, чтобы юзер написал /withdraw боту
-        }
-    </script>
+    function tab(id, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active-nav');
+    }
+</script>
 </body>
 </html>
