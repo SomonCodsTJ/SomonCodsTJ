@@ -357,6 +357,9 @@
                 <div class="energy-text">
                     ⚡ Энергия: <span id="energy-display">1000</span>/1000
                 </div>
+                
+                <!-- Кнопка ежедневного бонуса -->
+                <button class="hacker-btn" id="btn-daily" onclick="claimDaily()" style="margin-top: 15px; border-color: #ffd700; color: #ffd700;">🎁 ЕЖЕДНЕВНЫЙ БОНУС</button>
             </div>
 
             <!-- ВКЛАДКА: УЛУЧШЕНИЯ -->
@@ -487,6 +490,7 @@
         let adsWatched = 0;
         let friendsCount = 0;
         let agreedToTerms = 0;
+        let lastDailyClaim = 0;
 
         // Переменные для оптимизации (накопление кликов)
         let unsentBalance = 0;
@@ -566,6 +570,8 @@
                     adsWatched = data.ads_watched;
                     friendsCount = data.friends_count;
                     agreedToTerms = data.agreed_to_terms || 0;
+                    lastDailyClaim = data.last_daily_claim || 0;
+                    updateDailyButton(); // Обновляем кнопку бонуса
                     
                     // Если не принял условия - показываем окно
                     if (agreedToTerms === 0) {
@@ -597,6 +603,7 @@
             if (energy < 1000) {
                 energy += 1; // +1 энергия в секунду
                 updateUI();
+                updateDailyButton(); // Также обновляем таймер бонуса
             }
         }, 1000);
 
@@ -759,6 +766,40 @@
                     alert("❌ Ошибка: " + data.error);
                 }
             });
+        }
+
+        // Ежедневный бонус
+        function updateDailyButton() {
+            const now = Date.now() / 1000;
+            const diff = now - lastDailyClaim;
+            const btn = document.getElementById('btn-daily');
+            
+            if (diff >= 86400) {
+                btn.disabled = false;
+                btn.innerText = "🎁 ЗАБРАТЬ БОНУС (+5000)";
+                btn.style.opacity = "1";
+            } else {
+                btn.disabled = true;
+                const remaining = 86400 - diff;
+                const h = Math.floor(remaining / 3600);
+                const m = Math.floor((remaining % 3600) / 60);
+                btn.innerText = `⏳ Жди ${h}ч ${m}м`;
+                btn.style.opacity = "0.5";
+            }
+        }
+
+        function claimDaily() {
+            fetch('/api/daily_reward', { method: 'POST', body: JSON.stringify({ user_id: userId }) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        balance = data.balance;
+                        lastDailyClaim = Date.now() / 1000;
+                        updateUI();
+                        updateDailyButton();
+                        alert(`✅ Получено +${data.reward} монет!`);
+                    }
+                });
         }
 
         // Вывод средств
