@@ -488,6 +488,10 @@
         let friendsCount = 0;
         let agreedToTerms = 0;
 
+        // Переменные для оптимизации (накопление кликов)
+        let unsentBalance = 0;
+        let lastSentEnergy = 1000;
+
         // Инициализация Telegram
         const tg = window.Telegram.WebApp;
         tg.expand(); // На весь экран
@@ -604,6 +608,23 @@
             }
         }, 1000);
 
+        // --- ОПТИМИЗАЦИЯ: Отправка кликов раз в 2 секунды ---
+        setInterval(() => {
+            if (unsentBalance > 0) {
+                fetch('/api/tap', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        user_id: userId, 
+                        amount: unsentBalance, 
+                        energy: energy, 
+                        username: userObj?.username 
+                    })
+                }).catch(e => console.error("Ошибка сохранения:", e));
+                
+                unsentBalance = 0; // Сбрасываем накопленное
+            }
+        }, 2000);
+
         // Логика Тапа
         document.getElementById('tap-btn').addEventListener('click', (e) => {
             if (energy > 0) {
@@ -613,6 +634,7 @@
                 
                 balance += level;
                 energy -= 1;
+                unsentBalance += level; // Накапливаем для отправки
                 
                 // Анимация цифры
                 const floatText = document.createElement('div');
@@ -625,11 +647,7 @@
 
                 updateUI();
                 
-                // Отправка клика на сервер
-                fetch('/api/tap', {
-                    method: 'POST',
-                    body: JSON.stringify({ user_id: userId, amount: level, energy: energy, username: userObj?.username })
-                });
+                // Убрали мгновенную отправку fetch, теперь она в setInterval выше
             }
         });
 
