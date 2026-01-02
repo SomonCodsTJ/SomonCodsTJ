@@ -502,6 +502,11 @@
         const userId = tg.initDataUnsafe?.user?.id || 1; // ID пользователя
         const userObj = tg.initDataUnsafe?.user;
 
+        // ПРОВЕРКА: Если игра запущена на GitHub, предупреждаем игрока
+        if (window.location.hostname.includes('github.io')) {
+            alert("⚠️ ВНИМАНИЕ!\nВы играете через GitHub Pages, но сервер (бот) запущен на вашем компьютере.\n\nПокупки и сохранения работать НЕ БУДУТ.\n\nЧтобы всё работало, откройте ссылку http://localhost:3000 в браузере на ПК.");
+        }
+
         // --- АВТОРИЗАЦИЯ: ПРОВЕРКА ---
         // Если открыли не в Telegram, блокируем доступ
         if (!userObj) {
@@ -691,7 +696,10 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
-            }).then(res => res.json()).then(data => {
+            }).then(res => {
+                if (!res.ok) throw new Error("Ошибка сервера: " + res.status);
+                return res.json();
+            }).then(data => {
                 if (data.status === 'ok') {
                     // Звук покупки
                     audioBuy.currentTime = 0;
@@ -704,7 +712,10 @@
                 } else {
                     alert("❌ " + data.error);
                 }
-            }).catch(e => alert("❌ Ошибка связи: " + e));
+            }).catch(e => {
+                if (e.name === 'SyntaxError') alert("❌ Ошибка соединения!\nСкорее всего, вы играете через GitHub, а сервер на ПК недоступен.");
+                else alert("❌ Ошибка: " + e.message);
+            });
         });
 
         // Покупка майнера
@@ -713,7 +724,10 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, type: type })
-            }).then(res => res.json()).then(data => {
+            }).then(res => {
+                if (!res.ok) throw new Error("Ошибка сервера: " + res.status);
+                return res.json();
+            }).then(data => {
                 if (data.status === 'ok') {
                     // Звук покупки
                     audioBuy.currentTime = 0;
@@ -727,7 +741,10 @@
                     // Если ошибка "Недостаточно средств", пишем понятнее
                     alert("❌ " + data.error);
                 }
-            }).catch(e => alert("❌ Ошибка связи: " + e));
+            }).catch(e => {
+                if (e.name === 'SyntaxError') alert("❌ Ошибка соединения!\nСкорее всего, вы играете через GitHub, а сервер на ПК недоступен.");
+                else alert("❌ Ошибка: " + e.message);
+            });
         }
 
         function inviteFriend() {
@@ -796,7 +813,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId }) 
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error("Ошибка сервера: " + res.status);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.status === 'ok') {
                         balance = data.balance;
@@ -807,7 +827,10 @@
                     } else {
                         alert("⏳ Ошибка: " + (data.error || "Подождите 24 часа"));
                     }
-                }).catch(e => alert("❌ Ошибка сети: " + e));
+                }).catch(e => {
+                    if (e.name === 'SyntaxError') alert("❌ Ошибка соединения!\nСервер недоступен.");
+                    else alert("❌ Ошибка: " + e.message);
+                });
         }
 
         // Вывод средств
