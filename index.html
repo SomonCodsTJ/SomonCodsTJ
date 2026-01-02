@@ -608,22 +608,38 @@
             }
         }, 1000);
 
-        // --- ОПТИМИЗАЦИЯ: Отправка кликов раз в 2 секунды ---
-        setInterval(() => {
+        // --- ОПТИМИЗАЦИЯ: Умное сохранение ---
+        function saveProgress() {
             if (unsentBalance > 0) {
+                const amountToSend = unsentBalance;
+                unsentBalance = 0; // Сбрасываем локально, чтобы не дублировать
+
                 fetch('/api/tap', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    keepalive: true, // ВАЖНО: Позволяет сохранить данные даже при закрытии приложения
                     body: JSON.stringify({ 
                         user_id: userId, 
-                        amount: unsentBalance, 
+                        amount: amountToSend, 
                         energy: energy, 
                         username: userObj?.username 
                     })
-                }).catch(e => console.error("Ошибка сохранения:", e));
-                
-                unsentBalance = 0; // Сбрасываем накопленное
+                }).catch(e => {
+                    console.error("Ошибка сохранения:", e);
+                    unsentBalance += amountToSend; // Если ошибка, возвращаем монеты обратно в очередь
+                });
             }
-        }, 2000);
+        }
+
+        // 1. Сохраняем каждую секунду (быстро)
+        setInterval(saveProgress, 1000);
+
+        // 2. Сохраняем МГНОВЕННО, если игрок свернул игру или закрыл окно
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveProgress();
+            }
+        });
 
         // Логика Тапа
         document.getElementById('tap-btn').addEventListener('click', (e) => {
@@ -647,7 +663,7 @@
 
                 updateUI();
                 
-                // Убрали мгновенную отправку fetch, теперь она в setInterval выше
+                // Данные уйдут через 1 сек или при выходе (см. saveProgress)
             }
         });
 
