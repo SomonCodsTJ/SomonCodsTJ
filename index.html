@@ -641,6 +641,11 @@
             }
         });
 
+        // 3. Дополнительная страховка при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            saveProgress();
+        });
+
         // Логика Тапа
         document.getElementById('tap-btn').addEventListener('click', (e) => {
             if (energy > 0) {
